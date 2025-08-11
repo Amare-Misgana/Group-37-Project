@@ -1,0 +1,18 @@
+# Node / React
+node_modules/
+build/
+.env
+npm-debug.log
+
+# Django / Python
+__pycache__/
+*.pyc
+*.pyo
+*.sqlite3
+db.sqlite3
+.env
+/staticfiles/
+media/
+
+# VSCode settings (optional)
+.vscode/

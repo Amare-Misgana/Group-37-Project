@@ -25,3 +25,6 @@ class AttendanceRecored(models.Model):
     session = models.ForeignKey(AttendanceSession, on_delete=models.CASCADE)
     attended = models.BooleanField(default=False)
     attended_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.student} is attended"

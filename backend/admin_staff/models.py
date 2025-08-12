@@ -33,6 +33,13 @@ def random_password(
     return get_random_string(length, allowed_chars=password_allowed_characters)
 
 
+class FieldOfStudy(models.Model):
+    field_name = models.CharField(max_length=150)
+
+    def __str__(self):
+        return f"Field name: {self.field_name}"
+
+
 class CustomUserManager(BaseUserManager):
 
     def create_user(self, email, role=None, password=None, **extra_fields):
@@ -59,6 +66,7 @@ class CustomUserManager(BaseUserManager):
     ):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("field_of_study", None)
         if extra_fields.get("is_staff") is not True:
             raise ValueError("Superuser must have is_staff=True")
         if extra_fields.get("is_superuser") is not True:
@@ -79,7 +87,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="student")
     is_staff = models.BooleanField(default=False)
+    profile_img = models.ImageField(upload_to="avatars/")
     date_joined = models.DateTimeField(auto_now_add=True)
+    field_of_study = models.ForeignKey(
+        FieldOfStudy, on_delete=models.CASCADE, null=True, default=None, blank=True
+    )
 
     objects = CustomUserManager()
 
@@ -100,10 +112,3 @@ class Profile(models.Model):
             self.password = ""
 
         super().save(*args, **kwargs)
-
-
-class FieldOfStudy(models.Model):
-    field_name = models.CharField(max_length=150)
-
-    def __str__(self):
-        return f"Field name: {self.field_name}"

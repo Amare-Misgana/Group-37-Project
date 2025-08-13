@@ -31,7 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    "admin_staff",
+    "admin_staff.apps.AdminConfig",
     "student",
     "mentor",
     "news",
@@ -132,7 +132,7 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
-ASGI_APPLICATION = "your_project_name.asgi.application"
+ASGI_APPLICATION = "core.asgi.application"
 
 CORS_ALLOW_ALL_ORIGINS = True
 

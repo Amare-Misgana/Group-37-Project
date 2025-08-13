@@ -1,0 +1,285 @@
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Gradient fallback + full-resolution image */
+  background: linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.25)), url('https://upload.wikimedia.org/wikipedia/commons/f/fc/INSA_Headquarters.jpg');
+  background-color: #e9ecef;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.camp-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="camp" patternUnits="userSpaceOnUse" width="100" height="100"><path d="M20,80 L80,80 L80,60 L60,40 L40,40 L20,60 Z" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="30" r="5" fill="rgba(255,255,255,0.2)"/><rect x="45" y="35" width="10" height="15" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23camp)"/></svg>'),
+    url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="bus" patternUnits="userSpaceOnUse" width="100" height="100"><rect x="10" y="70" width="80" height="20" rx="5" fill="rgba(255,255,255,0.1)"/><rect x="15" y="75" width="70" height="10" fill="rgba(255,255,255,0.2)"/><circle cx="25" cy="90" r="3" fill="rgba(255,255,255,0.3)"/><circle cx="75" cy="90" r="3" fill="rgba(255,255,255,0.3)"/></pattern></defs><rect width="100" height="100" fill="url(%23bus)"/></svg>');
+  opacity: 0.3;
+  animation: float 20s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(1deg); }
+}
+
+.login-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 450px;
+  position: relative;
+  z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.login-header h1 {
+  color: #2c3e50;
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.login-header p {
+  color: #7f8c8d;
+  font-size: 16px;
+  margin: 0;
+  font-weight: 500;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: #2c3e50;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-selection {
+  display: flex;
+  gap: 15px;
+  margin-top: 5px;
+}
+
+.role-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 10px 15px;
+  border: 2px solid #e1e5e9;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  background: white;
+  flex: 1;
+  justify-content: center;
+}
+
+.role-option:hover {
+  border-color: #3498db;
+  background: #f8f9ff;
+}
+
+.role-option input[type="radio"] {
+  display: none;
+}
+
+.role-option input[type="radio"]:checked + .role-label {
+  color: #3498db;
+  font-weight: 600;
+}
+
+.role-option input[type="radio"]:checked ~ .role-option {
+  border-color: #3498db;
+  background: #f8f9ff;
+}
+
+.role-label {
+  color: #6c757d;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.role-option input[type="radio"]:checked + .role-label {
+  color: #3498db;
+  font-weight: 600;
+}
+
+.role-option:has(input[type="radio"]:checked) {
+  border-color: #3498db;
+  background: #f8f9ff;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-group input {
+  padding: 15px 20px;
+  border: 2px solid #e1e5e9;
+  border-radius: 10px;
+  font-size: 16px;
+  color: #2c3e50;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-group input.error {
+  border-color: #e74c3c;
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+}
+
+.error-message {
+  color: #e74c3c;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 5px;
+}
+
+.login-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+
+.login-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+.login-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-footer {
+  margin-top: 30px;
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #e1e5e9;
+}
+
+.login-footer p {
+  color: #7f8c8d;
+  font-size: 12px;
+  margin: 5px 0;
+  font-weight: 500;
+}
+
+.login-footer p:first-child {
+  color: #2c3e50;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .login-container {
+    padding: 20px;
+  }
+  
+  .login-card {
+    padding: 30px 25px;
+    max-width: 100%;
+  }
+  
+  .login-header h1 {
+    font-size: 28px;
+  }
+  
+  .role-selection {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .role-option {
+    justify-content: flex-start;
+  }
+  
+  .form-group input {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  .login-button {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 25px 20px;
+  }
+  
+  .login-header h1 {
+    font-size: 24px;
+  }
+  
+  .login-header p {
+    font-size: 14px;
+  }
+  
+  .form-group input {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  
+  .login-button {
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+} 

@@ -1,0 +1,272 @@
+.qr-scanner {
+  padding: 30px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.scanner-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.scanner-header h1 {
+  margin: 0 0 10px 0;
+  color: #2c3e50;
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.scanner-header p {
+  margin: 0;
+  color: #7f8c8d;
+  font-size: 16px;
+}
+
+/* Mode Selector */
+.mode-selector {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+  justify-content: center;
+}
+
+.mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: 2px solid #e1e5e9;
+  background: white;
+  color: #7f8c8d;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.mode-btn:hover {
+  border-color: #3498db;
+  color: #3498db;
+}
+
+.mode-btn.active {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border-color: #3498db;
+}
+
+/* Scanner Controls */
+.scanner-controls {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.start-btn,
+.stop-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 15px 30px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.start-btn {
+  background: linear-gradient(135deg, #27ae60, #2ecc71);
+  color: white;
+}
+
+.stop-btn {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+}
+
+.start-btn:hover,
+.stop-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Scanner Container */
+.scanner-container {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+}
+
+#qr-reader {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* Student Information */
+.student-info {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+}
+
+.student-card {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.student-photo img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #3498db;
+}
+
+.student-details h3 {
+  margin: 0 0 15px 0;
+  color: #2c3e50;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.student-details p {
+  margin: 0 0 8px 0;
+  color: #2c3e50;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.student-details strong {
+  font-weight: 600;
+}
+
+.status {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-left: 8px;
+}
+
+.status.active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status.inactive {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* Action Buttons */
+.action-buttons {
+  text-align: center;
+}
+
+.reset-btn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.reset-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Instructions */
+.instructions {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.instructions h3 {
+  margin: 0 0 15px 0;
+  color: #2c3e50;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.instructions ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #2c3e50;
+  line-height: 1.6;
+}
+
+.instructions li {
+  margin-bottom: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .qr-scanner {
+    padding: 20px;
+  }
+  
+  .scanner-header h1 {
+    font-size: 24px;
+  }
+  
+  .mode-selector {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .mode-btn {
+    width: 200px;
+    justify-content: center;
+  }
+  
+  .student-card {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .student-photo img {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .student-details h3 {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .qr-scanner {
+    padding: 15px;
+  }
+  
+  .scanner-container,
+  .student-info,
+  .instructions {
+    padding: 20px;
+  }
+  
+  .mode-btn {
+    width: 100%;
+  }
+  
+  .start-btn,
+  .stop-btn {
+    width: 100%;
+    justify-content: center;
+  }
+} 

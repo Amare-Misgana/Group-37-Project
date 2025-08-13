@@ -49,10 +49,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=30)
     middle_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
+    username = models.CharField(max_length=150, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="student")
     is_staff = models.BooleanField(default=False)
-    profile_img = models.ImageField(upload_to="avatars/", default="avatars/default.png")
+    profile_img = models.ImageField(upload_to="avatars/", null=True, blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     field_of_study = models.ForeignKey(
         FieldOfStudy, on_delete=models.CASCADE, null=True, default=None, blank=True
@@ -63,8 +64,19 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["first_name", "middle_name", "last_name"]
 
+    def save(self, *args, **kwargs):
+        self.first_name = self.first_name.strip().capitalize()
+        self.middle_name = self.middle_name.strip().capitalize()
+        self.last_name = self.last_name.strip().capitalize()
+        self.username = self.first_name + " " + self.middle_name + " " + self.last_name
+
+        if not self.profile_img:
+            self.profile_img = "avatars/default.png"
+
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"Email: {self.email}"
+        return f"User: {self.username} - {self.role}"
 
 
 class Profile(models.Model):
@@ -77,3 +89,6 @@ class Profile(models.Model):
             self.password = ""
 
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Profile: {self.user.username} - {self.user.role}"

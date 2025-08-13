@@ -28,8 +28,9 @@ class NewsConsumer(AsyncWebsocketConsumer):
     
     async def disconnect(self, close_code):
         """Handle WebSocket disconnection"""
-        # Remove user from all groups
-        await self.remove_user_from_groups()
+        # Only remove from groups if user is authenticated and has a role
+        if hasattr(self, 'user') and self.user and self.user.is_authenticated:
+            await self.remove_user_from_groups()
     
     async def receive(self, text_data):
         """Handle incoming WebSocket messages"""
@@ -56,7 +57,7 @@ class NewsConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def add_user_to_groups(self):
         """Add user to role-based groups"""
-        if self.user.role:
+        if self.user and self.user.is_authenticated and hasattr(self.user, 'role') and self.user.role:
             # Add to role-specific group
             group_name = f"news_{self.user.role}"
             self.channel_layer.group_add(group_name, self.channel_name)
@@ -77,7 +78,7 @@ class NewsConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def remove_user_from_groups(self):
         """Remove user from all groups"""
-        if self.user.role:
+        if self.user and self.user.is_authenticated and hasattr(self.user, 'role') and self.user.role:
             group_name = f"news_{self.user.role}"
             self.channel_layer.group_discard(group_name, self.channel_name)
             self.channel_layer.group_discard("news_all", self.channel_name)
@@ -91,6 +92,20 @@ class NewsConsumer(AsyncWebsocketConsumer):
     
     async def handle_send_news(self, data):
         """Handle sending news based on user role"""
+        if not self.user or not self.user.is_authenticated:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': 'Authentication required'
+            }))
+            return
+            
+        if not hasattr(self.user, 'role') or not self.user.role:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': 'User role not defined'
+            }))
+            return
+            
         if self.user.role == 'admin_staff':
             await self.admin_send_news(data)
         elif self.user.role == 'mentor':
@@ -221,6 +236,13 @@ class NewsConsumer(AsyncWebsocketConsumer):
     
     async def send_news_to_user(self):
         """Send relevant news to the connected user"""
+        if not self.user or not self.user.is_authenticated:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': 'Authentication required'
+            }))
+            return
+            
         news_items = await self.get_user_news()
         
         await self.send(text_data=json.dumps({
@@ -234,6 +256,9 @@ class NewsConsumer(AsyncWebsocketConsumer):
         # Import here to avoid Django settings issues
         from .models import News
         
+        if not self.user or not self.user.is_authenticated or not hasattr(self.user, 'role'):
+            return []
+            
         if self.user.role == 'admin_staff':
             # Admin staff can see all news
             news = News.objects.filter(is_published=True)

@@ -1,9 +1,12 @@
 from django.urls import path
+from . import views
 
-from news.views import notification_view
+app_name = 'news'
 
-urlpatterns =[
-    path("notifications/" ,notification_view,name ="notification_view" )
+urlpatterns = [
+    path('', views.index, name='index'),
+    path('test/', views.test_websocket, name='test_websocket'),
+    path('list/', views.news_list, name='news_list'),
 ]
 
 

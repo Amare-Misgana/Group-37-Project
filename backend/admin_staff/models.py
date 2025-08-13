@@ -1,36 +1,9 @@
 from django.db import models
-from django.utils.crypto import get_random_string
 from django.contrib.auth.models import (
     BaseUserManager,
     AbstractBaseUser,
     PermissionsMixin,
 )
-
-
-def random_password(
-    length=6,
-    add_upper_cases=False,
-    add_lower_cases=True,
-    add_numbers=False,
-    add_symbols=False,
-):
-
-    upper_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    lower_letters = "abcdefghijklmnopqrstuvwxyz"
-    numbers = "1234567890"
-    symbols = "./?@!$%*(+=-_)}{"
-    password_allowed_characters = ""
-
-    if add_upper_cases:
-        password_allowed_characters += upper_letters
-    if add_lower_cases:
-        password_allowed_characters += lower_letters
-    if add_numbers:
-        password_allowed_characters += numbers
-    if add_symbols:
-        password_allowed_characters += symbols
-
-    return get_random_string(length, allowed_chars=password_allowed_characters)
 
 
 class FieldOfStudy(models.Model):
@@ -47,17 +20,10 @@ class CustomUserManager(BaseUserManager):
         if not email:
             raise ValueError("The Email field must be set.")
 
-        if not role:
-            role = "admin_staff"
-
-        if not password:
-            password = random_password(add_upper_cases=True)
-
         email = self.normalize_email(email)
         user = self.model(email=email, role=role, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
-        Profile.objects.create(user=user, password=password)
 
         return user
 
@@ -66,7 +32,6 @@ class CustomUserManager(BaseUserManager):
     ):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("field_of_study", None)
         if extra_fields.get("is_staff") is not True:
             raise ValueError("Superuser must have is_staff=True")
         if extra_fields.get("is_superuser") is not True:
@@ -87,7 +52,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="student")
     is_staff = models.BooleanField(default=False)
-    profile_img = models.ImageField(upload_to="avatars/")
+    profile_img = models.ImageField(upload_to="avatars/", default="avatars/default.png")
     date_joined = models.DateTimeField(auto_now_add=True)
     field_of_study = models.ForeignKey(
         FieldOfStudy, on_delete=models.CASCADE, null=True, default=None, blank=True
@@ -103,12 +68,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
 
 class Profile(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     password = models.CharField(max_length=100, blank=True)
 
     def save(self, *args, **kwargs):
 
-        if self._state.adding and self.user.role == "admin_staff":
+        if self.user.role == "admin_staff":
             self.password = ""
 
         super().save(*args, **kwargs)

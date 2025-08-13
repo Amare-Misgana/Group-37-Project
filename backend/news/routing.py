@@ -1,5 +1,5 @@
 from django.urls import re_path
-from chat.consumers import NotificationConsumer
+from news.consumers import NotificationConsumer
 
 
 websocket_urlpatterns = [

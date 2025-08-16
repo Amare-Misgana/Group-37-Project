@@ -32,3 +32,10 @@ class AttendanceRecored(models.Model):
 class LectureAttendance(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     date = models.DateField()
+    attended = models.BooleanField(default=False)
+    attended_at = models.DateTimeField(auto_now_add=True)
+class DiningAttendance(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    date = models.DateField()
+    attended = models.BooleanField(default=False)
+    attended_at = models.DateTimeField(auto_now_add=True)

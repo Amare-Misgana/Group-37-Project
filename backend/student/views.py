@@ -9,3 +9,7 @@ class StudentListView(generics.ListAPIView):
 class StudentDetailView(generics.RetrieveAPIView):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
+
+class StudentCreateView(generics.CreateAPIView):
+    queryset = Student.objects.all()
+    serializer_class = StudentSerializer

@@ -3,6 +3,7 @@ import uuid
 from django.utils import timezone
 from datetime import timedelta
 from django.conf import settings
+from student.models import Student 
 
 
 class AttendanceSession(models.Model):
@@ -28,3 +29,6 @@ class AttendanceRecored(models.Model):
 
     def __str__(self):
         return f"{self.student} is attended"
+class LectureAttendance(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    date = models.DateField()

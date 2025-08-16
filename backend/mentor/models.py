@@ -23,4 +23,5 @@ class Marks(models.Model):
             raise ValueError("Mark can only be set to a student.")
 
     def __str__(self):
-        return f"{self.user} - {self.news.title}"
+        return f"{self.student} - {self.project.name}"
+    

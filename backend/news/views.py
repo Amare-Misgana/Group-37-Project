@@ -1,14 +1,14 @@
+from urllib import request
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from .models import News
 
-# Create your views here.
 
 def index(request):
     return JsonResponse({"message": "News Index Page"})
 
-# @login_required
+@login_required
 def test_websocket(request):
     """Simple endpoint to test WebSocket connection"""
     return JsonResponse({
@@ -16,9 +16,11 @@ def test_websocket(request):
         "user_role": request.user.role,
         "user_id": request.user.id,
         "websocket_url": f"ws://{request.get_host()}/ws/news/"
+
+
     })
 
-# @login_required
+@login_required
 def news_list(request):
     """Display news based on user role"""
     if request.user.role == 'admin_staff':
@@ -33,7 +35,8 @@ def news_list(request):
     
     news_data = [
         {
-            'id': item.id,
+                        
+            'id': item.pk,
             'title': item.title,
             'content': item.content,
             'author': f"{item.author.first_name} {item.author.last_name}",
@@ -48,3 +51,4 @@ def news_list(request):
         'user_role': request.user.role,
         'count': len(news_data)
     })
+

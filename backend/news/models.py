@@ -8,7 +8,7 @@ class News(models.Model):
         ("all", "All Users"),
         ("student", "Students Only"),
         ("mentor", "Mentors Only"),
-        ("admin_staff", "Admin Staff Only"),
+        ("admin staff","admin staff only"),
     ]
     
     title = models.CharField(max_length=200)

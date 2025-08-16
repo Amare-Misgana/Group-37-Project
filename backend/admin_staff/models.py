@@ -45,10 +45,19 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         ("mentor", "Mentor"),
         ("admin_staff", "Admin Staff"),
     ]
+    GENDER_CHOICES = [
+        ("m", "Male"),
+        ("f", "Female"),
+    ]
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=30)
     middle_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
+    age = models.PositiveSmallIntegerField(default=0)
+    phone_number = models.PositiveBigIntegerField(default=0)
+    guardian_number = models.PositiveBigIntegerField(default=0)
+    gender = models.CharField(max_length=10, default="m", choices=GENDER_CHOICES)
+    dorm_number = models.PositiveSmallIntegerField(default=0)
     username = models.CharField(max_length=150, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="student")

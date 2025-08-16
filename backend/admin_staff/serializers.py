@@ -1,6 +1,9 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import authenticate
 from rest_framework import exceptions
+from .models import CustomUser
+from rest_framework import serializers
+import pandas as pd
 
 
 class EmailBasedTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -22,3 +25,5 @@ class EmailBasedTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data
 
 
+class ExcelUploadSerializer(serializers.Serializer):
+    file = serializers.FileField()

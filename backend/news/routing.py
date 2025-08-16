@@ -1,7 +1,6 @@
 from django.urls import re_path
-from chat.consumers import NotificationConsumer
-
+from .consumers import NewsConsumer
 
 websocket_urlpatterns = [
-    re_path(r'ws/news/$', consumers.NewsConsumer.as_asgi()),
+    re_path(r'ws/news/$', NewsConsumer.as_asgi()),  
 ]

@@ -1,6 +1,4 @@
 from django.db import models
-
-from django.db import models
 from student.models import Student
 
 class Project(models.Model):

@@ -31,7 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    "Project.apps.ProjectConfig",
+    "Project",
     "admin_staff",
     "student",
     "mentor",

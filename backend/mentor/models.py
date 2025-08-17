@@ -1,6 +1,8 @@
 from django.db import models
 from admin_staff.models import FieldOfStudy
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from student.models import Student as StudentModel
 
 
 class Project(models.Model):
@@ -19,8 +21,13 @@ class Marks(models.Model):
     mark = models.PositiveIntegerField()
 
     def clean(self):
-        if self.student.role is not "student":
-            raise ValueError("Mark can only be set to a student.")
+        # Accept either a Student model instance or a CustomUser with role 'student'
+        if isinstance(self.student, StudentModel):
+            return
+
+        role = getattr(self.student, "role", None)
+        if role != "student":
+            raise ValidationError("Mark can only be set to a student.")
 
     def __str__(self):
         return f"{self.student} - {self.project.name}"

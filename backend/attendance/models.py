@@ -10,7 +10,6 @@ class AttendanceSession(models.Model):
     TYPE_CHOICES = [
         ("early", "Early Comers"),
         ("dining", "Dining Hall"),
-        ("sports", "Sports Field"),
     ]
     DINING_PROGRAM_CHOICES = [
         ("breakfast", "Breakfast"),

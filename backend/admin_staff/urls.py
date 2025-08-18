@@ -6,4 +6,6 @@ urlpatterns = [
     path("add-users-excel-template/", views.AddUserExcelTemplateAPIView.as_view()),
     path("add-users-excel/", views.AddUserExcelAPIView.as_view()),
     path("dashboard/", views.DashboardView.as_view()),
+    path("mentor-mang/", views.MentorManagementView.as_view()),
+    path("student-mang/", views.StudentManagementView.as_view()),
 ]

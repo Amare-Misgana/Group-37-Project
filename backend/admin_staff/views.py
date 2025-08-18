@@ -3,17 +3,19 @@ from django.http import HttpResponse
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .models import CustomUser, FieldOfStudy, Profile
+from .models import CustomUser, FieldOfStudy, Profile, AdminRecentActions
 from .serializers import EmailBasedTokenObtainPairSerializer, ExcelUploadSerializer
 from .utils.random_password import random_password
 import pandas as pd
 from io import BytesIO
 from datetime import timedelta
 from collections import defaultdict
-from django.db.models import Count, Q, Min, Max
+from django.db.models import Count, Q, Min, Max, F
 from django.http import JsonResponse
 from django.utils import timezone
 from attendance.models import AttendanceRecord, AttendanceSession
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 
 class EmailBasedTokenObtainPairView(TokenObtainPairView):
@@ -265,110 +267,456 @@ class AddUserExcelAPIView(APIView):
 
 class DashboardView(APIView):
     def get(self, request):
-        # countable status: total students, mentors, fields and dorm room
         counts = CustomUser.objects.aggregate(
             total_students=Count("id", filter=Q(role="student")),
             total_mentors=Count("id", filter=Q(role="mentor")),
             total_dorm_rooms=Count("id", filter=~Q(dorm_number=0)),
         )
-        total_fields = FieldOfStudy.objects.all().count()
+        total_fields = FieldOfStudy.objects.count()
 
-        # Getting the boudners.
-        bounds = AttendanceSession.objects.filter(type="dining").aggregate(
-            first=Min("start_time"), last=Max("start_time")
+        student_totals = CustomUser.objects.aggregate(
+            total_students=Count("id", filter=Q(role="student")),
+            male_students=Count(
+                "id", filter=Q(role="student", gender__in=["male", "M", "Male", "m"])
+            ),
+            female_students=Count(
+                "id",
+                filter=Q(role="student", gender__in=["female", "F", "Female", "f"]),
+            ),
         )
-        print(bounds)
-        first_dt = bounds["first"]
-        last_dt = bounds["last"]
 
-        if not first_dt or not last_dt:
-            return Response(
-                {
-                    "countable": {**counts, "total_fields": total_fields},
-                    "dinning_attendace": [],
-                }
+        dining_attendance_bounds = AttendanceSession.objects.filter(
+            type="dining"
+        ).aggregate(first=Min("start_time"), last=Max("start_time"))
+
+        first_dt = dining_attendance_bounds["first"]
+        last_dt = dining_attendance_bounds["last"]
+
+        if first_dt and last_dt:
+            first_date = first_dt.date()
+            last_date = last_dt.date()
+
+            days = []
+            current_date = first_date
+            while current_date <= last_date:
+                days.append(current_date.isoformat())
+                current_date += timedelta(days=1)
+
+            qs = AttendanceRecord.objects.filter(
+                session__type="dining",
+                session__start_time__date__gte=first_date,
+                session__start_time__date__lte=last_date,
             )
 
-        first_date = first_dt.date()
-        last_date = last_dt.date()
-
-        # create list of days from first to last
-        days = []
-        current_date = first_date
-        while current_date <= last_date:
-            days.append(current_date.isoformat())
-            current_date += timedelta(days=1)
-
-        qs = AttendanceRecord.objects.filter(
-            session__type="dining",
-            session__start_time__date__gte=first_date,
-            session__start_time__date__lte=last_date,
-        )
-
-        aggregated = qs.values(
-            "session__start_time__date", "session__program_name"
-        ).annotate(
-            male_present=Count(
-                "id",
-                filter=Q(student__gender__in=["male", "Male", "M", "m"], attended=True),
-            ),
-            female_present=Count(
-                "id",
-                filter=Q(
-                    student__gender__in=["female", "Female", "F", "f"], attended=True
+            aggregated = qs.values(
+                "session__start_time__date", "session__program_name"
+            ).annotate(
+                male_present=Count(
+                    "id",
+                    filter=Q(student__gender__in=["male", "M"], attended=True),
                 ),
-            ),
-            male_total=Count(
-                "id", filter=Q(student__gender__in=["male", "Male", "M", "m"])
-            ),
-            female_total=Count(
-                "id", filter=Q(student__gender__in=["female", "Female", "F", "f"])
-            ),
-            total_present=Count("id", filter=Q(attended=True)),
-            total=Count("id"),
-        )
+                female_present=Count(
+                    "id",
+                    filter=Q(student__gender__in=["female", "F"], attended=True),
+                ),
+                total_present=Count("id", filter=Q(attended=True)),
+                total=Count("id"),
+            )
 
-        tmp = defaultdict(dict)
-        for row in aggregated:
-            date_iso = row["session__start_time__date"].isoformat()
-            prog = (
-                row["session__program_name"] or "unknown"
-            ).lower()  # normalize program_name
-            tmp[date_iso][prog] = {
-                "malePresent": row["male_present"],
-                "maleTotal": row["male_total"],
-                "femalePresent": row["female_present"],
-                "femaleTotal": row["female_total"],
-                "totalPresent": row["total_present"],
-                "total": row["total"],
-            }
+            tmp = defaultdict(dict)
+            for row in aggregated:
+                date_iso = row["session__start_time__date"].isoformat()
+                prog = (row["session__program_name"] or "unknown").lower()
+                tmp[date_iso][prog] = {
+                    "malePresent": row["male_present"],
+                    "maleTotal": student_totals["male_students"],
+                    "femalePresent": row["female_present"],
+                    "femaleTotal": student_totals["female_students"],
+                    "totalPresent": row["total_present"],
+                    "total": student_totals["total_students"],
+                }
 
-        PROGRAMS = ["breakfast", "lunch", "dinner"]
+            PROGRAMS = ["breakfast", "lunch", "dinner"]
+            dining_attendance_out = []
+            for day in days:
+                programs = []
+                for prog in PROGRAMS:
+                    stats = tmp.get(day, {}).get(prog)
+                    if stats:
+                        programs.append({"program": prog, **stats})
+                    else:
+                        programs.append(
+                            {
+                                "program": prog,
+                                "malePresent": 0,
+                                "maleTotal": student_totals["male_students"],
+                                "femalePresent": 0,
+                                "femaleTotal": student_totals["female_students"],
+                                "totalPresent": 0,
+                                "total": student_totals["total_students"],
+                            }
+                        )
+                dining_attendance_out.append({"date": day, "programs": programs})
+        else:
+            dining_attendance_out = []
 
-        dinning_attendance_out = []
-        for day in days:
-            programs = []
-            for prog in PROGRAMS:
-                stats = tmp.get(day, {}).get(prog)
+        early_attendance_bounds = AttendanceSession.objects.exclude(
+            type="dining"
+        ).aggregate(first=Min("start_time"), last=Max("start_time"))
+
+        first_dt = early_attendance_bounds["first"]
+        last_dt = early_attendance_bounds["last"]
+
+        if first_dt and last_dt:
+            first_date = first_dt.date()
+            last_date = last_dt.date()
+
+            days = []
+            current_date = first_date
+            while current_date <= last_date:
+                days.append(current_date.isoformat())
+                current_date += timedelta(days=1)
+
+            qs = AttendanceRecord.objects.filter(
+                session__type="early",
+                session__start_time__date__gte=first_date,
+                session__start_time__date__lte=last_date,
+            )
+
+            aggregated = qs.values("session__start_time__date").annotate(
+                male_present=Count(
+                    "id",
+                    filter=Q(student__gender__in=["male", "M"], attended=True),
+                ),
+                female_present=Count(
+                    "id",
+                    filter=Q(student__gender__in=["female", "F"], attended=True),
+                ),
+                total_present=Count("id", filter=Q(attended=True)),
+                total=Count("id"),
+            )
+
+            tmp = {}
+            for row in aggregated:
+                date_iso = row["session__start_time__date"].isoformat()
+                tmp[date_iso] = {
+                    "malePresent": row["male_present"],
+                    "maleTotal": student_totals["male_students"],
+                    "femalePresent": row["female_present"],
+                    "femaleTotal": student_totals["female_students"],
+                    "totalPresent": row["total_present"],
+                    "total": student_totals["total_students"],
+                }
+
+            early_comers_attendance_out = []
+            for day in days:
+                stats = tmp.get(day)
                 if stats:
-                    programs.append({"program": prog, **stats})
+                    early_comers_attendance_out.append({"date": day, **stats})
                 else:
-                    programs.append(
+                    early_comers_attendance_out.append(
                         {
-                            "program": prog,
+                            "date": day,
                             "malePresent": 0,
-                            "maleTotal": 0,
+                            "maleTotal": student_totals["male_students"],
                             "femalePresent": 0,
-                            "femaleTotal": 0,
+                            "femaleTotal": student_totals["female_students"],
                             "totalPresent": 0,
-                            "total": 0,
+                            "total": student_totals["total_students"],
                         }
                     )
-            dinning_attendance_out.append({"date": day, "programs": programs})
+        else:
+            early_comers_attendance_out = []
+
+        recent_actions_qs = AdminRecentActions.objects.order_by("-created_at")[
+            :10
+        ].values("admin__username", "action_title", "action", "created_at")
+
+        recent_admin_actions = []
+        for action_row in recent_actions_qs:
+            recent_admin_actions.append(
+                {
+                    "admin": action_row["admin__username"],
+                    "title": action_row["action_title"],
+                    "action": action_row["action"],
+                    "created_at": (
+                        action_row["created_at"].isoformat()
+                        if action_row["created_at"]
+                        else None
+                    ),
+                }
+            )
 
         return Response(
             {
                 "countable": {**counts, "total_fields": total_fields},
-                "dinning_attendace": dinning_attendance_out,
+                "dining_attendance": dining_attendance_out,
+                "early_comers_attendance": early_comers_attendance_out,
+                "recent_admin_actions": recent_admin_actions,
             }
+        )
+
+
+class MentorManagementView(APIView):
+    def get(self, request):
+
+        if request.GET.get("export") == "True":
+            mentors = (
+                CustomUser.objects.filter(role="mentor")
+                .annotate(field=F("field_of_study__field_name"))
+                .values(
+                    "id",
+                    "username",
+                    "first_name",
+                    "middle_name",
+                    "last_name",
+                    "field",
+                    "age",
+                    "phone_number",
+                    "guardian_number",
+                    "gender",
+                    "email",
+                )
+            )
+
+            for mentor in list(mentors):
+                mentor["phone_number"] = str(mentor["phone_number"])
+                mentor["guardian_number"] = str(mentor["guardian_number"])
+                if not mentor["field"]:
+                    mentor["field"] = "Not set"
+
+            df = pd.DataFrame(mentors)
+            df.fillna("", inplace=True)
+            buf = BytesIO()
+            df.to_excel(buf, index=False, engine="openpyxl")
+            buf.seek(0)
+            response = HttpResponse(
+                buf.getvalue(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            response["Content-Disposition"] = 'attachment; filename="mentors.xlsx"'
+            return response
+
+        qs = (
+            CustomUser.objects.filter(role="mentor")
+            .annotate(field=F("field_of_study__field_name"))
+            .values("id", "username", "field", "age")
+        )
+        mentors = list(qs)
+
+        return Response({"mentors": mentors})
+
+    def post(self, request):
+        data = request.data
+
+        errors = []
+
+        first_name = (data.get("first_name") or "").strip()
+        middle_name = (data.get("middle_name") or "").strip()
+        last_name = (data.get("last_name") or "").strip()
+        field = (data.get("field") or "").strip()
+        age = (data.get("age") or "").strip()
+        phone_number = (data.get("phone_number") or "").strip()
+        guardian_number = (data.get("guardian_number") or "").strip()
+        gender = (data.get("gender") or "").strip().lower()
+        email = (data.get("email") or "").strip()
+
+        if not first_name:
+            errors.append({"first_name": "First name can't be empty"})
+        if not middle_name:
+            errors.append({"middle_name": "Middle name can't be empty"})
+        if not last_name:
+            errors.append({"last_name": "Last name can't be empty"})
+        if not age.isdigit() or int(age) <= 0:
+            errors.append({"age": "Age must be a positive number"})
+        if not phone_number:
+            errors.append({"phone_number": "Phone number is required"})
+        if not gender:
+            errors.append({"gender": "Gender is required"})
+        gender = "f" if "female" else "m"
+        gender = "f" if "f" else "m"
+        if not field:
+            errors.append({"field": "Field can't be empty"})
+        else:
+            if not FieldOfStudy.objects.filter(field_name=field.lower()).exists():
+                errors.append(
+                    {"field": "The field you provided does't exist in the database"}
+                )
+        if not email:
+            errors.append({"email": "Email can't be empty"})
+        else:
+            try:
+                validate_email(email)
+            except ValidationError:
+                errors.append({"email": "Invalid email format"})
+        if CustomUser.objects.filter(email=email).exists():
+            errors.append({"email": "Email already exists"})
+
+        if errors:
+            return Response({"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            mentor = CustomUser.objects.create(
+                first_name=first_name,
+                middle_name=middle_name,
+                last_name=last_name,
+                field_of_study=FieldOfStudy.objects.get(field_name=field.lower()),
+                age=int(age),
+                phone_number=phone_number,
+                guardian_number=guardian_number,
+                gender=gender,
+                email=email,
+                role="mentor",
+            )
+        except Exception as e:
+            return Response({"error": str(e)})
+
+        password = random_password(add_upper_cases=True, add_numbers=True)
+
+        mentor.set_password(password)
+        mentor.save()
+        try:
+            Profile.objects.create(user=mentor, password=password)
+        except Exception as e:
+            return Response({"error": str(e)})
+
+        return Response(
+            {"status": f"{mentor.username} created successfully."},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class StudentManagementView(APIView):
+    def get(self, request):
+        if request.GET.get("export") == "True":
+            students = (
+                CustomUser.objects.filter(role="student")
+                .annotate(field=F("field_of_study__field_name"))
+                .values(
+                    "id",
+                    "username",
+                    "first_name",
+                    "middle_name",
+                    "last_name",
+                    "field",
+                    "age",
+                    "phone_number",
+                    "guardian_number",
+                    "gender",
+                    "dorm_number",
+                    "email",
+                )
+            )
+            for student in list(students):
+                student["phone_number"] = str(student["phone_number"])
+                student["guardian_number"] = str(student["guardian_number"])
+                if not student["field"]:
+                    student["field"] = "Not set"
+
+            df = pd.DataFrame(students)
+
+            df.fillna("", inplace=True)
+            buf = BytesIO()
+            df.to_excel(buf, index=False, engine="openpyxl")
+            buf.seek(0)
+            response = HttpResponse(
+                buf.getvalue(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            response["Content-Disposition"] = 'attachment; filename="students.xlsx"'
+            return response
+
+        qs = (
+            CustomUser.objects.filter(role="student")
+            .annotate(field=F("field_of_study__field_name"))
+            .values("id", "username", "field", "age")
+        )
+        students = list(qs)
+        return Response({"students": students})
+
+    def post(self, request):
+        data = request.data
+        errors = []
+
+        first_name = (data.get("first_name") or "").strip()
+        middle_name = (data.get("middle_name") or "").strip()
+        last_name = (data.get("last_name") or "").strip()
+        field = (data.get("field") or "").strip()
+        age = str(data.get("age") or "").strip()
+        phone_number = (data.get("phone_number") or "").strip()
+        guardian_number = (data.get("guardian_number") or "").strip()
+        gender = (data.get("gender") or "").strip().lower()
+        dorm_number = str(data.get("dorm_number") or "").strip()
+        email = (data.get("email") or "").strip()
+
+        # validations
+        if not first_name:
+            errors.append({"first_name": "First name can't be empty"})
+        if not middle_name:
+            errors.append({"middle_name": "Middle name can't be empty"})
+        if not last_name:
+            errors.append({"last_name": "Last name can't be empty"})
+        if not age.isdigit() or int(age) <= 0:
+            errors.append({"age": "Age must be a positive number"})
+        if not dorm_number.isdigit() or int(dorm_number) <= 0:
+            errors.append({"dorm_number": "Dorm number must be a positive number"})
+        if not phone_number:
+            errors.append({"phone_number": "Phone number is required"})
+        if not gender:
+            errors.append({"gender": "Gender is required"})
+        else:
+            gender = "f" if "female" in gender else "m"
+
+        if not field:
+            errors.append({"field": "Field can't be empty"})
+        else:
+            if not FieldOfStudy.objects.filter(field_name__iexact=field).exists():
+                errors.append(
+                    {"field": "The field you provided doesn't exist in the database"}
+                )
+
+        if not email:
+            errors.append({"email": "Email can't be empty"})
+        else:
+            try:
+                validate_email(email)
+            except ValidationError:
+                errors.append({"email": "Invalid email format"})
+        if CustomUser.objects.filter(email=email).exists():
+            errors.append({"email": "Email already exists"})
+
+        if errors:
+            return Response({"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        # create student
+        try:
+            student = CustomUser.objects.create(
+                first_name=first_name,
+                middle_name=middle_name,
+                last_name=last_name,
+                field_of_study=FieldOfStudy.objects.get(field_name__iexact=field),
+                age=int(age),
+                phone_number=phone_number,
+                guardian_number=guardian_number,
+                dorm_number=int(dorm_number),
+                gender=gender,
+                email=email,
+                role="student",
+            )
+        except Exception as e:
+            return Response({"error": str(e)})
+
+        # generate random password
+        password = random_password(add_upper_cases=True, add_numbers=True)
+        student.set_password(password)
+        student.save()
+
+        try:
+            Profile.objects.create(user=student, password=password)
+        except Exception as e:
+            return Response({"error": str(e)})
+
+        return Response(
+            {"status": f"{student.username} created successfully."},
+            status=status.HTTP_201_CREATED,
         )

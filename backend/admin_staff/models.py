@@ -54,8 +54,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     middle_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
     age = models.PositiveSmallIntegerField(default=0)
-    phone_number = models.PositiveBigIntegerField(default=0)
-    guardian_number = models.PositiveBigIntegerField(default=0)
+    phone_number = models.CharField(max_length=150, default=0)
+    guardian_number = models.CharField(max_length=150, default=0)
     gender = models.CharField(max_length=10, default="m", choices=GENDER_CHOICES)
     dorm_number = models.PositiveSmallIntegerField(default=0)
     username = models.CharField(max_length=150, null=True, blank=True)
@@ -101,3 +101,15 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"Profile: {self.user.username} - {self.user.role}"
+
+
+class AdminRecentActions(models.Model):
+    admin = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, limit_choices_to={"role": "admin_staff"}
+    )
+    action = models.CharField(max_length=300)
+    action_title = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.admin.username} : {self.action_title}"

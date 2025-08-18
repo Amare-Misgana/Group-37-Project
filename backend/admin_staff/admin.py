@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import mark_safe
-from .models import CustomUser, Profile, FieldOfStudy
+from .models import CustomUser, Profile, FieldOfStudy, AdminRecentActions
 
 
 class CustomUserAdmin(admin.ModelAdmin):
@@ -45,3 +45,4 @@ class CustomUserAdmin(admin.ModelAdmin):
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Profile)
 admin.site.register(FieldOfStudy)
+admin.site.register(AdminRecentActions)

@@ -65,7 +65,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     profile_img = models.ImageField(upload_to="avatars/", null=True, blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     field_of_study = models.ForeignKey(
-        FieldOfStudy, on_delete=models.CASCADE, null=True, default=None, blank=True
+        FieldOfStudy,
+        on_delete=models.CASCADE,
+        null=True,
+        default=None,
+        blank=True,
+        related_name="field_of_study_relate_name",
     )
 
     objects = CustomUserManager()

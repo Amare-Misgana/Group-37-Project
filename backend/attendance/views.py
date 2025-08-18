@@ -1,3 +1,4 @@
 from django.shortcuts import render
+from .models import AttendanceSession, AttendanceRecord
 
-# Create your views here.
+

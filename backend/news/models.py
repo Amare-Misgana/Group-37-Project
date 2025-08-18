@@ -24,7 +24,7 @@ class News(models.Model):
         return f"News name: {self.title}"
 
 
-class NewsReaded(models.Model):
+class NewsRead(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     news = models.ForeignKey(News, on_delete=models.CASCADE)
     is_read = models.BooleanField(default=False)

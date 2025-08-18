@@ -38,7 +38,7 @@
 .scanner-card {
   background: white;
   border-radius: 15px;
-  padding: 30px;
+  padding: 60px 0px 58px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   border: 1px solid #ecf0f1;
 }
@@ -197,6 +197,7 @@
 .scan-history-section {
   display: flex;
   flex-direction: column;
+
 }
 
 .history-card {
@@ -358,10 +359,11 @@
 
 .instruction-item {
   display: flex;
-  gap: 15px;
-  align-items: flex-start;
+  gap: 16px;
+  align-items:flex-start;
+  
+  
 }
-
 .instruction-number {
   width: 30px;
   height: 30px;

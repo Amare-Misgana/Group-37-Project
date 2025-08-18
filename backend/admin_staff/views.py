@@ -97,6 +97,120 @@ class AddUserAPIView(APIView):
             {"result": {"status": "User Created"}}, status=status.HTTP_201_CREATED
         )
 
+    def put(self, request, user_id):
+        try:
+            user = CustomUser.objects.get(id=user_id)
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"result": {"messages": f"User with id '{user_id}' does not exist."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        data = request.data
+        result_message = []
+
+        first_name = data.get("first_name")
+        middle_name = data.get("middle_name")
+        last_name = data.get("last_name")
+        email = data.get("email")
+        role = (data.get("role") or user.role).strip().lower()
+        field_of_study = data.get("field_of_study")
+        profile_img = request.FILES.get("image")
+        password = data.get("password")
+
+        if field_of_study:
+            try:
+                field_of_study_instant = FieldOfStudy.objects.get(
+                    field_name=field_of_study
+                )
+            except FieldOfStudy.DoesNotExist:
+                return Response(
+                    {
+                        "result": {
+                            "messages": f"FieldOfStudy '{field_of_study}' does not exist."
+                        }
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            field_of_study_instant = None
+
+        if role not in ["student", "mentor", "admin_staff"]:
+            result_message.append(f"'{role}' is not a valid Role.")
+
+        if not first_name:
+            result_message.append("First name is required.")
+        if not middle_name:
+            result_message.append("Middle name is required.")
+        if not last_name:
+            result_message.append("Last name is required.")
+        if not email:
+            result_message.append("Email is required.")
+        elif CustomUser.objects.filter(email=email).exclude(id=user.id).exists():
+            result_message.append("Email already taken.")
+
+        if result_message:
+            return Response(
+                {"result": {"messages": result_message}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.first_name = first_name
+        user.middle_name = middle_name
+        user.last_name = last_name
+        user.email = email
+        user.role = role
+        user.field_of_study = field_of_study_instant
+        if profile_img:
+            user.profile_img = profile_img
+        if password:
+            user.set_password(password)
+        user.save()
+
+        return Response(
+            {"result": {"status": "User updated"}}, status=status.HTTP_200_OK
+        )
+
+    # ---------------- PATCH method ----------------
+    def patch(self, request, user_id):
+        try:
+            user = CustomUser.objects.get(id=user_id)
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"result": {"messages": f"User with id '{user_id}' does not exist."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        data = request.data
+
+        if "first_name" in data:
+            user.first_name = data["first_name"].strip()
+        if "middle_name" in data:
+            user.middle_name = data["middle_name"].strip()
+        if "last_name" in data:
+            user.last_name = data["last_name"].strip()
+        if "email" in data:
+            email = data["email"].strip()
+            if not CustomUser.objects.filter(email=email).exclude(id=user.id).exists():
+                user.email = email
+        if "role" in data:
+            role = data["role"].strip().lower()
+            if role in ["student", "mentor", "admin_staff"]:
+                user.role = role
+        if "field_of_study" in data:
+            field = data["field_of_study"].strip()
+            if FieldOfStudy.objects.filter(field_name=field).exists():
+                user.field_of_study = FieldOfStudy.objects.get(field_name=field)
+        if "image" in request.FILES:
+            user.profile_img = request.FILES["image"]
+        if "password" in data:
+            user.set_password(data["password"])
+
+        user.save()
+        return Response(
+            {"result": {"status": "User partially updated"}}, status=status.HTTP_200_OK
+        )
+
 
 class AddUserExcelTemplateAPIView(APIView):
     def get(self, request):
@@ -582,6 +696,132 @@ class MentorManagementView(APIView):
             status=status.HTTP_201_CREATED,
         )
 
+    def put(self, request, mentor_id):
+        try:
+            mentor = CustomUser.objects.get(id=mentor_id, role="mentor")
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"error": f"Mentor with id '{mentor_id}' does not exist"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        data = request.data
+        errors = []
+
+        first_name = (data.get("first_name") or "").strip()
+        middle_name = (data.get("middle_name") or "").strip()
+        last_name = (data.get("last_name") or "").strip()
+        field = (data.get("field") or "").strip()
+        age = (data.get("age") or "").strip()
+        phone_number = (data.get("phone_number") or "").strip()
+        guardian_number = (data.get("guardian_number") or "").strip()
+        gender = (data.get("gender") or "").strip().lower()
+        email = (data.get("email") or "").strip()
+
+        if not first_name:
+            errors.append({"first_name": "First name can't be empty"})
+        if not middle_name:
+            errors.append({"middle_name": "Middle name can't be empty"})
+        if not last_name:
+            errors.append({"last_name": "Last name can't be empty"})
+        if not age.isdigit() or int(age) <= 0:
+            errors.append({"age": "Age must be a positive number"})
+        if not phone_number:
+            errors.append({"phone_number": "Phone number is required"})
+        if not gender:
+            errors.append({"gender": "Gender is required"})
+        else:
+            gender = "f" if "female" in gender else "m"
+
+        if not field:
+            errors.append({"field": "Field can't be empty"})
+        elif not FieldOfStudy.objects.filter(field_name__iexact=field).exists():
+            errors.append(
+                {"field": "The field you provided doesn't exist in the database"}
+            )
+
+        if not email:
+            errors.append({"email": "Email can't be empty"})
+        else:
+            try:
+                validate_email(email)
+                if (
+                    CustomUser.objects.filter(email=email)
+                    .exclude(id=mentor.id)
+                    .exists()
+                ):
+                    errors.append({"email": "Email already exists"})
+            except ValidationError:
+                errors.append({"email": "Invalid email format"})
+
+        if errors:
+            return Response({"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        # update mentor
+        mentor.first_name = first_name
+        mentor.middle_name = middle_name
+        mentor.last_name = last_name
+        mentor.field_of_study = FieldOfStudy.objects.get(field_name__iexact=field)
+        mentor.age = int(age)
+        mentor.phone_number = phone_number
+        mentor.guardian_number = guardian_number
+        mentor.gender = gender
+        mentor.email = email
+        mentor.save()
+
+        return Response({"status": "Mentor updated successfully"})
+
+    # ---------------- PATCH method ----------------
+    def patch(self, request, mentor_id):
+        try:
+            mentor = CustomUser.objects.get(id=mentor_id, role="mentor")
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"error": f"Mentor with id '{mentor_id}' does not exist"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        data = request.data
+
+        if "first_name" in data:
+            mentor.first_name = data["first_name"].strip()
+        if "middle_name" in data:
+            mentor.middle_name = data["middle_name"].strip()
+        if "last_name" in data:
+            mentor.last_name = data["last_name"].strip()
+        if "field" in data:
+            field = data["field"].strip()
+            if FieldOfStudy.objects.filter(field_name__iexact=field).exists():
+                mentor.field_of_study = FieldOfStudy.objects.get(
+                    field_name__iexact=field
+                )
+        if "age" in data:
+            age = str(data["age"]).strip()
+            if age.isdigit() and int(age) > 0:
+                mentor.age = int(age)
+        if "phone_number" in data:
+            mentor.phone_number = data["phone_number"].strip()
+        if "guardian_number" in data:
+            mentor.guardian_number = data["guardian_number"].strip()
+        if "gender" in data:
+            gender = data["gender"].strip().lower()
+            mentor.gender = "f" if "female" in gender else "m"
+        if "email" in data:
+            email = data["email"].strip()
+            try:
+                validate_email(email)
+                if (
+                    not CustomUser.objects.filter(email=email)
+                    .exclude(id=mentor.id)
+                    .exists()
+                ):
+                    mentor.email = email
+            except ValidationError:
+                pass
+
+        mentor.save()
+        return Response({"status": "Mentor partially updated"})
+
 
 class StudentManagementView(APIView):
     def get(self, request):
@@ -718,6 +958,136 @@ class StudentManagementView(APIView):
             status=status.HTTP_201_CREATED,
         )
 
+    def put(self, request, student_id):
+        try:
+            student = CustomUser.objects.get(id=student_id, role="student")
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"error": f"Student with id '{student_id}' does not exist"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        data = request.data
+        errors = []
+
+        first_name = (data.get("first_name") or "").strip()
+        middle_name = (data.get("middle_name") or "").strip()
+        last_name = (data.get("last_name") or "").strip()
+        field = (data.get("field") or "").strip()
+        age = str(data.get("age") or "").strip()
+        phone_number = (data.get("phone_number") or "").strip()
+        guardian_number = (data.get("guardian_number") or "").strip()
+        gender = (data.get("gender") or "").strip().lower()
+        dorm_number = str(data.get("dorm_number") or "").strip()
+        email = (data.get("email") or "").strip()
+
+        if not first_name:
+            errors.append({"first_name": "First name can't be empty"})
+        if not middle_name:
+            errors.append({"middle_name": "Middle name can't be empty"})
+        if not last_name:
+            errors.append({"last_name": "Last name can't be empty"})
+        if not age.isdigit() or int(age) <= 0:
+            errors.append({"age": "Age must be a positive number"})
+        if not dorm_number.isdigit() or int(dorm_number) <= 0:
+            errors.append({"dorm_number": "Dorm number must be a positive number"})
+        if not phone_number:
+            errors.append({"phone_number": "Phone number is required"})
+        if not gender:
+            errors.append({"gender": "Gender is required"})
+        else:
+            gender = "f" if "female" in gender else "m"
+
+        if not field:
+            errors.append({"field": "Field can't be empty"})
+        elif not FieldOfStudy.objects.filter(field_name__iexact=field).exists():
+            errors.append(
+                {"field": "The field you provided doesn't exist in the database"}
+            )
+
+        if not email:
+            errors.append({"email": "Email can't be empty"})
+        else:
+            try:
+                validate_email(email)
+            except ValidationError:
+                errors.append({"email": "Invalid email format"})
+            if CustomUser.objects.filter(email=email).exclude(id=student.id).exists():
+                errors.append({"email": "Email already exists"})
+
+        if errors:
+            return Response({"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        # update student
+        student.first_name = first_name
+        student.middle_name = middle_name
+        student.last_name = last_name
+        student.field_of_study = FieldOfStudy.objects.get(field_name__iexact=field)
+        student.age = int(age)
+        student.phone_number = phone_number
+        student.guardian_number = guardian_number
+        student.dorm_number = int(dorm_number)
+        student.gender = gender
+        student.email = email
+        student.save()
+
+        return Response({"status": "Student updated successfully"})
+
+    # ---------------- PATCH method ----------------
+    def patch(self, request, student_id):
+        try:
+            student = CustomUser.objects.get(id=student_id, role="student")
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"error": f"Student with id '{student_id}' does not exist"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        data = request.data
+
+        if "first_name" in data:
+            student.first_name = data["first_name"].strip()
+        if "middle_name" in data:
+            student.middle_name = data["middle_name"].strip()
+        if "last_name" in data:
+            student.last_name = data["last_name"].strip()
+        if "field" in data:
+            field = data["field"].strip()
+            if FieldOfStudy.objects.filter(field_name__iexact=field).exists():
+                student.field_of_study = FieldOfStudy.objects.get(
+                    field_name__iexact=field
+                )
+        if "age" in data:
+            age = str(data["age"]).strip()
+            if age.isdigit() and int(age) > 0:
+                student.age = int(age)
+        if "phone_number" in data:
+            student.phone_number = data["phone_number"].strip()
+        if "guardian_number" in data:
+            student.guardian_number = data["guardian_number"].strip()
+        if "dorm_number" in data:
+            dorm_number = str(data["dorm_number"]).strip()
+            if dorm_number.isdigit() and int(dorm_number) > 0:
+                student.dorm_number = int(dorm_number)
+        if "gender" in data:
+            gender = data["gender"].strip().lower()
+            student.gender = "f" if "female" in gender else "m"
+        if "email" in data:
+            email = data["email"].strip()
+            try:
+                validate_email(email)
+                if (
+                    not CustomUser.objects.filter(email=email)
+                    .exclude(id=student.id)
+                    .exists()
+                ):
+                    student.email = email
+            except ValidationError:
+                pass
+
+        student.save()
+        return Response({"status": "Student partially updated"})
+
 
 class FieldManagementView(APIView):
     def get(self, request):
@@ -726,13 +1096,12 @@ class FieldManagementView(APIView):
                 "field_of_study_relate_name",
                 filter=Q(field_of_study_relate_name__role="student"),
             )
-        ).values("field_name", "students")
+        ).values("id", "field_name", "students")
 
         return Response({"fields": fields}, status=status.HTTP_200_OK)
 
     def post(self, request):
         data = request.data
-
         field_name = (data.get("field_name") or "").strip().lower()
 
         if not field_name:
@@ -747,4 +1116,39 @@ class FieldManagementView(APIView):
             {"status": "success", "messsage": "Field created successfully"},
             status=status.HTTP_201_CREATED,
         )
- 
+
+    def put(self, request, field_id):
+        try:
+            field = FieldOfStudy.objects.get(id=field_id)
+        except FieldOfStudy.DoesNotExist:
+            return Response(
+                {"error": f"Field with id '{field_id}' does not exist"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        field_name = (request.data.get("field_name") or "").strip().lower()
+        if not field_name:
+            return Response({"error": {"field_name": "Field name can't be empty"}})
+
+        field.field_name = field_name
+        field.save()
+        return Response({"status": "success", "message": "Field updated successfully"})
+
+    # ---------------- PATCH method ----------------
+    def patch(self, request, field_id):
+        try:
+            field = FieldOfStudy.objects.get(id=field_id)
+        except FieldOfStudy.DoesNotExist:
+            return Response(
+                {"error": f"Field with id '{field_id}' does not exist"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if "field_name" in request.data:
+            field_name = request.data["field_name"].strip().lower()
+            if not field_name:
+                return Response({"error": {"field_name": "Field name can't be empty"}})
+            field.field_name = field_name
+
+        field.save()
+        return Response({"status": "success", "message": "Field partially updated"})

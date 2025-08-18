@@ -100,7 +100,6 @@ class AddUserAPIView(APIView):
 
 class AddUserExcelTemplateAPIView(APIView):
     def get(self, request):
-        # Define headers only
         columns = [
             "First Name",
             "Middle Name",
@@ -113,10 +112,8 @@ class AddUserExcelTemplateAPIView(APIView):
             "Role",
         ]
 
-        # Create empty DataFrame with headers
         df = pd.DataFrame(columns=columns)
 
-        # Save to an in-memory buffer
         buffer = BytesIO()
         df.to_excel(buffer, index=False, engine="openpyxl")
         buffer.seek(0)
@@ -718,5 +715,35 @@ class StudentManagementView(APIView):
 
         return Response(
             {"status": f"{student.username} created successfully."},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class FieldManagementView(APIView):
+    def get(self, request):
+        fields = FieldOfStudy.objects.annotate(
+            students=Count(
+                "field_of_study_relate_name",
+                filter=Q(field_of_study_relate_name__role="student"),
+            )
+        ).values("field_name", "students")
+
+        return Response({"fields": fields}, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        data = request.data
+
+        field_name = (data.get("field_name") or "").strip().lower()
+
+        if not field_name:
+            return Response({"error": {"field_name": "Field name can't be empty"}})
+
+        try:
+            FieldOfStudy.objects.create(field_name=field_name)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+        return Response(
+            {"status": "success", "messsage": "Field created successfully"},
             status=status.HTTP_201_CREATED,
         )

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import AttendanceRecored, LectureAttendance
+from .models import AttendanceRecored, LectureAttendance, DiningAttendance
 from student.models import Student
 
 
@@ -7,8 +7,8 @@ class DiningAttendanceSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source='student.name', read_only=True)
 
     class Meta:
-        model = AttendanceRecored
-        fields = ['id', 'student', 'student_name', 'session', 'timestamp']
+        model = DiningAttendance
+        fields = ['id', 'student', 'student_name', 'date', 'attended', 'attended_at']
 
 
 class LectureAttendanceSerializer(serializers.ModelSerializer):
@@ -16,4 +16,4 @@ class LectureAttendanceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LectureAttendance
-        fields = ['id', 'student', 'lecture', 'present', 'timestamp']
+        fields = ['id', 'student', 'student_name', 'date', 'attended', 'attended_at']

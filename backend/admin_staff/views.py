@@ -224,6 +224,8 @@ class AddUserExcelTemplateAPIView(APIView):
             "Phone Number",
             "Guardian Number",
             "Role",
+            "Field",
+            "Dorm Number",
         ]
 
         df = pd.DataFrame(columns=columns)
@@ -256,7 +258,6 @@ class AddUserExcelAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Required columns
         required_columns = [
             "First Name",
             "Middle Name",
@@ -267,6 +268,8 @@ class AddUserExcelAPIView(APIView):
             "Phone Number",
             "Guardian Number",
             "Role",
+            "Field",
+            "Dorm Number",
         ]
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
@@ -277,11 +280,13 @@ class AddUserExcelAPIView(APIView):
 
         errors = []
 
-        # Check each row for empty or invalid types
+        # Get all valid fields from FieldOfStudy model
+        valid_fields = set(FieldOfStudy.objects.values_list("field_name", flat=True))
+
+        # Check each row for empty/invalid values and valid Field
         for index, row in df.iterrows():
             for col in required_columns:
                 value = row[col]
-
                 if pd.isna(value) or (isinstance(value, str) and not value.strip()):
                     errors.append(
                         {
@@ -292,8 +297,8 @@ class AddUserExcelAPIView(APIView):
                     )
                     continue
 
-                if col == "Age" or col == "Guardian Number" or col == "Phone Number":
-                    if not isinstance(value, (int, float)) or pd.isna(value):
+                if col in ["Age", "Dorm Number", "Guardian Number", "Phone Number"]:
+                    if not isinstance(value, (int, float)):
                         errors.append(
                             {
                                 "row": index + 2,
@@ -311,6 +316,18 @@ class AddUserExcelAPIView(APIView):
                             }
                         )
 
+            # Field validation
+            field_value = str(row["Field"]).strip().lower()
+            if field_value not in valid_fields:
+                errors.append(
+                    {
+                        "row": index + 2,
+                        "column": "Field",
+                        "error": "Field not found in database",
+                    }
+                )
+
+        # Check duplicate emails in Excel
         email_list = df["Email"].tolist()
         duplicate_emails = [
             email for email in set(email_list) if email_list.count(email) > 1
@@ -326,6 +343,7 @@ class AddUserExcelAPIView(APIView):
                     }
                 )
 
+        # Check emails already in database
         existing_emails = set(CustomUser.objects.values_list("email", flat=True))
         for index, email in enumerate(email_list):
             if email in existing_emails:
@@ -340,11 +358,16 @@ class AddUserExcelAPIView(APIView):
         if errors:
             return Response({"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Convert dataframe to dict records
         data = df.to_dict(orient="records")
 
         try:
-            users = [
-                CustomUser(
+            users = []
+            passwords = []
+
+            for row in data:
+                gender = "f" if row["Gender"] else "m"
+                user = CustomUser(
                     first_name=str(row["First Name"]).strip().capitalize(),
                     middle_name=str(row["Middle Name"]).strip().capitalize(),
                     last_name=str(row["Last Name"]).strip().capitalize(),
@@ -356,18 +379,29 @@ class AddUserExcelAPIView(APIView):
                     profile_img="avatars/default.png",
                     email=row["Email"],
                     age=int(row["Age"]),
-                    gender=row["Gender"],
-                    phone_number=int(row["Phone Number"]),
-                    guardian_number=int(row["Guardian Number"]),
+                    gender=gender,
+                    phone_number=str(row["Phone Number"]),
+                    guardian_number=str(row["Guardian Number"]),
                     role=row["Role"],
                 )
-                for row in data
-            ]
 
-            CustomUser.objects.bulk_create(users)
+                password = random_password(add_upper_cases=True, add_numbers=True)
+                passwords.append(password)
+                user.set_password(password)
+                users.append(user)
+
+            # Bulk create users
+            bulk_users = CustomUser.objects.bulk_create(users)
+
+            # Bulk create profiles
+            profiles = [
+                Profile(user=u, password=p) for u, p in zip(bulk_users, passwords)
+            ]
+            Profile.objects.bulk_create(profiles)
+
         except Exception as e:
             return Response(
-                {"error": f"Invalid Excel file: {str(e)}"},
+                {"error": f"Error creating users: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -1152,3 +1186,28 @@ class FieldManagementView(APIView):
 
         field.save()
         return Response({"status": "success", "message": "Field partially updated"})
+
+
+class FieldManagementDetailView(APIView):
+    def get(self, request, field_id):
+        try:
+            field = FieldOfStudy.objects.get(id=field_id)
+        except FieldOfStudy.DoesNotExist:
+            return Response(
+                {"Error": f"Field with '{field_id}' doesn't exist"}, status=404
+            )
+
+        students = list(
+            CustomUser.objects.filter(role="student", field_of_study=field).values(
+                "id", "username", "email", "age"
+            )
+        )
+        mentors = list(
+            CustomUser.objects.filter(role="mentor", field_of_study=field).values(
+                "id", "username", "email", "age"
+            )
+        )
+
+        return Response(
+            {"field_name": field.field_name, "students": students, "mentors": mentors}
+        )

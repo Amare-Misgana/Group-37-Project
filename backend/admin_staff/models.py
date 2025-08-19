@@ -94,7 +94,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
 
 class Profile(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     password = models.CharField(max_length=100, blank=True)
 
     def save(self, *args, **kwargs):

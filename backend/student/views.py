@@ -5,7 +5,6 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from Project.models import Project
-from django.db.models import Avg, Max, Min, Count
 
 
 class StudentDashboardView(APIView):
@@ -31,8 +30,6 @@ class StudentDashboardView(APIView):
 
 
 class StudentSubjectsView(APIView):
-
-
     def get(self, request, pk):
         student = get_object_or_404(Student, pk=pk)
         projects = Project.objects.filter(student=student)
@@ -57,45 +54,57 @@ class StudentSubjectsView(APIView):
                 t_marks = [p.marks for p in t_projects if p.marks is not None]
                 types[t] = {
                     "count": len(t_projects),
-                    "average": float(sum(t_marks)/len(t_marks)) if t_marks else 0.0,
+                    "average": float(sum(t_marks) / len(t_marks)) if t_marks else 0.0,
                 }
 
             assignments = []
             for p in proj_list:
-                assignments.append({
-                    "id": p.id,
-                    "title": p.title,
-                    "description": p.description,
-                    "marks": float(p.marks) if p.marks is not None else None,
-                    "type": p.type,
-                    "subject": p.subject,
-                    "date": p.date.isoformat() if p.date else None,
-                })
+                assignments.append(
+                    {
+                        "id": p.id,
+                        "title": p.title,
+                        "description": p.description,
+                        "marks": float(p.marks) if p.marks is not None else None,
+                        "type": p.type,
+                        "subject": p.subject,
+                        "date": p.date.isoformat() if p.date else None,
+                    }
+                )
 
-            subjects.append({
-                "name": subj,
-                "average": avg,
-                "total_assignments": len(proj_list),
-                "highest_grade": highest,
-                "lowest_grade": lowest,
-                "types": types,
-                "assignments": assignments,
-            })
+            subjects.append(
+                {
+                    "name": subj,
+                    "average": avg,
+                    "total_assignments": len(proj_list),
+                    "highest_grade": highest,
+                    "lowest_grade": lowest,
+                    "types": types,
+                    "assignments": assignments,
+                }
+            )
 
-        return Response({
-            "student": {"id": student.id, "name": student.name, "email": student.email},
-            "subjects": subjects,
-        })
+        return Response(
+            {
+                "student": {
+                    "id": student.id,
+                    "name": student.name,
+                    "email": student.email,
+                },
+                "subjects": subjects,
+            }
+        )
+
 
 class StudentListView(generics.ListAPIView):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
 
+
 class StudentDetailView(generics.RetrieveAPIView):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
 
+
 class StudentCreateView(generics.CreateAPIView):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
-

@@ -1,10 +1,46 @@
 from django.contrib import admin
-from .models import CustomUser, CustomUserManager,Profile, FieldOfStudy
-from django.apps import apps
+from django.utils.html import mark_safe
+from .models import CustomUser, Profile, FieldOfStudy, AdminRecentActions
 
-# Register your models here.
+class CustomUserAdmin(admin.ModelAdmin):
+    readonly_fields = ("profile_image_preview", "date_joined")
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "email",
+                    "first_name",
+                    "middle_name",
+                    "last_name",
+                    "username",
+                    "age",
+                    "gender",
+                    "phone_number",
+                    "guardian_number",
+                    "dorm_number",
+                    "role",
+                    "is_active",
+                    "is_staff",
+                    "field_of_study",
+                    "profile_img",
+                    "profile_image_preview",
+                    "date_joined",
+                )
+            },
+        ),
+    )
 
-admin.site.register(CustomUser)
+    def profile_image_preview(self, obj):
+        if obj.profile_img:
+            return mark_safe(
+                f'<img src="{obj.profile_img.url}" width="150" height="150" />'
+            )
+        return "-"
+
+    profile_image_preview.short_description = "Profile Image Preview"
+
+admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Profile)
 admin.site.register(FieldOfStudy)
-
+admin.site.register(AdminRecentActions)

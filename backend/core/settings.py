@@ -19,10 +19,11 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    "Project",
-    "admin_staff",
+    # NOTE: Merge conflict resolved: using main's explicit AppConfig and removing 'Project'.
+    "admin_staff.apps.AdminConfig",
     "student",
     "mentor",
+    "project",
     "news",
     "attendance",
     "rest_framework",
@@ -135,6 +136,7 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
 }
+
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels.layers.InMemoryChannelLayer",

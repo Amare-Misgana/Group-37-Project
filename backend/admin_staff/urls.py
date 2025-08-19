@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 
+app_name = "admin_staff"
+
 urlpatterns = [
     path("add-user/", views.AddUserAPIView.as_view()),
     path("add-users-excel-template/", views.AddUserExcelTemplateAPIView.as_view()),

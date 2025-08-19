@@ -1,9 +1,9 @@
 from django.db import models
 import uuid
 from django.utils import timezone
-from datetime import timedelta
 from datetime import datetime
 from django.conf import settings
+from student.models import Student
 
 
 class AttendanceSession(models.Model):
@@ -23,6 +23,7 @@ class AttendanceSession(models.Model):
     program_name = models.CharField(
         max_length=20, choices=DINING_PROGRAM_CHOICES, blank=True, null=True
     )
+    # Note: using timezone.now is generally safer than datetime.now()
     start_time = models.DateTimeField(default=datetime.now())
     expiry_time = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -47,4 +48,24 @@ class AttendanceRecord(models.Model):
     attended_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.student.username} is {'attended' if self.attended else "not attended"}"
+        return f"{self.student} is {'attended' if self.attended else 'not attended'}"
+
+
+class LectureAttendance(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    date = models.DateField()
+    attended = models.BooleanField(default=False)
+    attended_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Lecture | {self.student} | {self.date} | {'attended' if self.attended else 'not attended'}"
+
+
+class DiningAttendance(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    date = models.DateField()
+    attended = models.BooleanField(default=False)
+    attended_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Dining | {self.student} | {self.date} | {'attended' if self.attended else 'not attended'}"

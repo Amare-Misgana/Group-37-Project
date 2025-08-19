@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.utils.html import mark_safe
 from .models import CustomUser, Profile, FieldOfStudy, AdminRecentActions
 
-
 class CustomUserAdmin(admin.ModelAdmin):
     readonly_fields = ("profile_image_preview", "date_joined")
     fieldsets = (
@@ -40,7 +39,6 @@ class CustomUserAdmin(admin.ModelAdmin):
         return "-"
 
     profile_image_preview.short_description = "Profile Image Preview"
-
 
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Profile)

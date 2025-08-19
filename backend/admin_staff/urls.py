@@ -11,5 +11,5 @@ urlpatterns = [
     path("student-mang/", views.StudentManagementView.as_view()),
     path("student-mang/<int:student_id>/", views.StudentManagementView.as_view()),
     path("field-mang/", views.FieldManagementView.as_view()),
-    path("field-mang/<int:field_id>/", views.FieldManagementView.as_view()),
+    path("field-mang/<int:field_id>/", views.FieldManagementDetailView.as_view()),
 ]

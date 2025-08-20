@@ -17,7 +17,6 @@ class AttendanceSession(models.Model):
         ("dinner", "Dinner"),
     ]
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
-    code = models.CharField(max_length=40, default=uuid.uuid4().hex)
     title = models.CharField(max_length=150, default="Attendance Title")
     description = models.TextField(default="description")
     program_name = models.CharField(

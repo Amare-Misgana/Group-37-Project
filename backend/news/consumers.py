@@ -9,10 +9,10 @@ class NewsConsumer(AsyncWebsocketConsumer):
         """Handle WebSocket connection with role-based authentication"""
         # Get user from scope (set by auth middleware)
         self.user = self.scope.get('user')
-
         if not self.user or not self.user.is_authenticated:
             await self.close()
             return
+
 
         # Accept the connection
         await self.accept()

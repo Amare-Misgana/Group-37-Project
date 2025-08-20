@@ -1,9 +1,9 @@
 from django.urls import path
-from . import views
-# from news.views import NewsListView, NewsDetailView
+from .views import NewsManagementView, NewsEditAndGetView
 
 urlpatterns = [
-    path("", views.index, name="index"),
-    path("test/", views.test_websocket, name="test_websocket"),
-    path("list/", views.news_list, name="news_list"),
+    # List all news and create new
+    path("", NewsManagementView.as_view(), name="news_management"),
+    # Retrieve/update/patch a single news by id
+    path("<int:news_id>/", NewsEditAndGetView.as_view(), name="news_detail"),
 ]

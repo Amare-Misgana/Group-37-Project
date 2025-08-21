@@ -267,7 +267,11 @@ class NewsConsumer(AsyncWebsocketConsumer):
         if self.user.role == 'admin_staff':
             qs = News.objects.filter(is_published=True)
         else:
-            qs = News.objects.filter(is_published=True, target_roles__in=[self.user.role, 'all'])
+            qs = News.objects.filter(
+                is_published=True
+            ).filter(
+                Q(target_roles=self.user.role) | Q(target_roles='all')
+            )
         # Return plain dicts to satisfy the type checker
         return list(qs.values('id', 'title', 'content', 'target_roles', 'created_at',
                               author_first_name=models.F('author__first_name'),

@@ -1,0 +1,23 @@
+Functionalities to be done
+
+
+1,attendance functionality(url,views)
+- Mentor session create
+mentor page -> Add attendance 
+title,type,start,end ,created at
+->take attendance 
+.allow the mentor to choose which created attendance to fill
+ 
+Procedures 
+mentor create the attendance
+mentor go to record attendance page which contain a camera
+the student show his code (which is the username)
+the mentor will decode it and it to attend url 
+student-attendance/<str:username>/
+checks if the session is expired and decide whether to mark the student as attended or not 
+
+
+
+
+3,Student views
+VALUES from custom user & the field of study should be the same with the mentor

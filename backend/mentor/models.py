@@ -1,12 +1,11 @@
 from django.db import models
-from admin_staff.models import FieldOfStudy
 from django.conf import settings
 
 
 class Project(models.Model):
     name = models.CharField(max_length=150)
     is_completed = models.BooleanField(default=False)
-    field_of_study = models.ForeignKey(FieldOfStudy, on_delete=models.CASCADE)
+    field_of_study = models.ForeignKey('admin_staff.FieldOfStudy', on_delete=models.CASCADE)
     out_of = models.PositiveIntegerField()
 
     def __str__(self):
@@ -18,9 +17,7 @@ class Marks(models.Model):
     student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     mark = models.PositiveIntegerField()
 
-    def clean(self):
-        if self.student.role is not "student":
-            raise ValueError("Mark can only be set to a student.")
-
     def __str__(self):
-        return f"{self.user} - {self.news.title}"
+        student_name = getattr(self.student, 'username', str(self.student))
+        project_name = getattr(self.project, 'name', 'Project')
+        return f"{student_name} - {project_name}: {self.mark}"
